@@ -11,28 +11,10 @@ class ElGamalCryptosystem
 public:
     GEN p, alpha, beta, limit, d, privateKey;
 
-    bool isPrime(GEN number)
-    {
-        long num = gtolong(number);
-        if (num <= 1)
-            return false;
-        if (num == 2 || num == 3)
-            return true;
-        if (num % 2 == 0 || num % 3 == 0)
-            return false;
-        long sqrt_num = (long)sqrt(num);
-        for (long i = 5; i <= sqrt_num; i += 6)
-        {
-            if (num % i == 0 || num % (i + 2) == 0)
-                return false;
-        }
-        return true;
-    }
-
     GEN select_prime()
     {
         GEN prime_candidate = limit;
-        while (!isPrime(prime_candidate))
+        while (!isprime(prime_candidate))
         {
             prime_candidate = gsub(prime_candidate, stoi(1));
         }
@@ -76,53 +58,31 @@ public:
             exit(1);
         }
         srand(time(NULL));
-        int randomIndex = rand() % primitiveRoots.size();
-        return primitiveRoots[randomIndex];
+        // int randomIndex = rand() % primitiveRoots.size();
+        return primitiveRoots[0];
     }
 
+    
     GEN select_d()
     {
-        GEN res = stoi(rand());
-        res = gmod(res, gsub(p, stoi(2)));
+        GEN res = stoi(5);
+        // GEN res = stoi(rand());
+
+        // res = gmod(res, gsub(p, stoi(2))); 
         return res;
     }
 
-    GEN mod_exp(GEN a, GEN b, GEN n)
+    
+    
+    GEN mod_exp(GEN base, GEN exp, GEN mod)
     {
-        GEN d = stoi(1);
-        GEN base = a;
-        GEN exp = b;
+    
+        GEN result = gpow(base, exp, DEFAULTPREC);
 
-        vector<GEN> bin;
+    
+        result = gmod(result, mod);
 
-        if (gcmp(exp, stoi(0)) == 0)
-        {
-            return d;
-        }
-
-        while (gcmp(exp, stoi(0)) != 0)
-        {
-            if (gcmp(exp, stoi(0)) == 0)
-            {
-                break;
-            }
-            bin.push_back(gmod(exp, stoi(2)));
-            exp = gdiv(exp, stoi(2));
-        }
-
-        for (int i = bin.size() - 1; i >= 0; i--)
-        {
-            d = gmul(d, d);
-            d = gmod(d, n);
-
-            if (gcmp(bin[i], stoi(1)) == 0)
-            {
-                d = gmul(d, base);
-                d = gmod(d, n);
-            }
-        }
-
-        return d;
+        return result;
     }
 
     ElGamalCryptosystem(int power)
@@ -131,18 +91,18 @@ public:
 
         GEN two = stoi(2);
         GEN exp = stoi(power);
-        limit = gpow(two, exp, DEFAULTPREC);
+        limit = gpow(two, exp, DEFAULTPREC); 
 
         p = select_prime();
         alpha = select_alpha();
 
-        d = select_d();
-
-        privateKey = gadd(d, two);
-        beta = gpow(alpha, privateKey, DEFAULTPREC);
+        d = select_d();                              
+        privateKey = gadd(d, stoi(1));               
+        beta = gpow(alpha, privateKey, DEFAULTPREC); 
         beta = gmod(beta, p);
     }
 
+    
     void printKeys()
     {
         cout << "Public Key: (p = " << gtolong(p) << ", alpha = " << gtolong(alpha)
@@ -150,10 +110,11 @@ public:
         cout << "Private Key: d = " << gtolong(privateKey) << "\n";
     }
 
+    
     pair<GEN, GEN> encryptMessage(GEN message)
     {
         GEN k = select_d(); 
-        
+
         GEN r = gpow(alpha, k, DEFAULTPREC);
         r = gmod(r, p);
 
@@ -163,5 +124,44 @@ public:
         t = gmod(t, p);
 
         return make_pair(r, t);
+    }
+
+    
+    GEN mod_inv(GEN a, GEN p)
+    {
+        GEN m = p, n = a;
+        GEN x1 = stoi(1), x2 = stoi(0), q, temp;
+
+        while (gcmp(n, stoi(0)) != 0)
+        {
+            q = gdiv(m, n);
+            temp = n;
+            n = gmod(m, n);
+            m = temp;
+
+            temp = x1;
+            x1 = gsub(x2, gmul(q, x1));
+            x2 = temp;
+        }
+
+        if (gcmp(m, stoi(1)) != 0)
+        {
+            cout << "Error: No modular inverse exists for " << gtolong(a) << " mod " << gtolong(p) << endl;
+            exit(1);
+        }
+
+        return gmod(x1, p); 
+    }
+
+    GEN decryptMessage(GEN r, GEN t)
+    {
+        GEN r_d = gpow(r, privateKey, DEFAULTPREC); 
+        r_d = gmod(r_d, p);
+
+        GEN r_d_inv = mod_inv(r_d, p);
+        GEN message = gmul(t, r_d_inv);
+        message = gmod(message, p);
+
+        return message;
     }
 };

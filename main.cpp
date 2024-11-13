@@ -7,25 +7,24 @@
 
 using namespace std;
 
-int main(int argc, char *argv[])
+
+int main()
 {
-    if (argc < 2)
-    {
-        cerr << "Error: Missing argument for power.\n";
-        cerr << "Usage: " << argv[0] << " <power>\n";
-        return 1;
-    }
+    int power = 10;  // Define the power of 2 to generate prime.
+    ElGamalCryptosystem elGamal(power);
 
-    int power = stoi(argv[1]);
+    elGamal.printKeys();  // Display the generated keys.
 
-    ElGamalCryptosystem obj(power);
+    // Encrypt a sample message.
+    GEN message = stoi(42);  // Some sample message (as a number).
+    pair<GEN, GEN> encryptedMessage = elGamal.encryptMessage(message);
 
-    obj.printKeys();
-    GEN message = stoi(513); 
+    cout << "Encrypted Message: (r = " << gtolong(encryptedMessage.first)
+         << ", t = " << gtolong(encryptedMessage.second) << ")\n";
 
-    pair<GEN, GEN> encrypted = obj.encryptMessage(message);
-
-    cout << "Encrypted Message: (r = " << gtolong(encrypted.first) << ", t = " << gtolong(encrypted.second) << ")\n";
+    // Decrypt the message.
+    GEN decryptedMessage = elGamal.decryptMessage(encryptedMessage.first, encryptedMessage.second);
+    cout << "Decrypted Message: " << gtolong(decryptedMessage) << endl;
 
     return 0;
 }
